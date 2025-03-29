@@ -3,7 +3,8 @@ import weave
 from exp import PromptPair, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT
 from utils import AnalysisData, generate_responses, Choice
 
-client = weave.init("prompter-app")
+PROJECT_ID = "sparc/prompter-app"
+client = weave.init(PROJECT_ID)
 
 # Set page to wide mode
 st.set_page_config(layout="wide")
@@ -143,8 +144,8 @@ def show_analysis(original_prompt_pair: PromptPair):
     # View weave traces
     st.markdown("---")
     st.markdown("### View weave traces")
-    base = "https://wandb.ai/sparc/prompter-st/r/call/"
-    op_name = "weave:///sparc/prompter-st/op/generate_responses:*"
+    base = f"https://wandb.ai/{PROJECT_ID}/r/call/"
+    op_name = f"weave:///{PROJECT_ID}/op/generate_responses:*"
     call = client.get_calls(
         filter={"op_names": [op_name]},
         sort_by=[{"field": "started_at", "direction": "desc"}],

@@ -177,7 +177,7 @@ def score_outputs(
     Output must be a JSON object with:
     - input_1: integer score 1-100 for the first output
     - input_2: integer score 1-100 for the second output
-    - comparison_notes: list of specific observations about the differences
+    - comparison_notes: list of strings, where each string is a specific observation about the differences between the outputs
     - winner: string indicating which version was better ("input_1", "input_2", or "tie")
     """
 
