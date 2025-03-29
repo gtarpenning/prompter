@@ -18,8 +18,11 @@ export WANDB_API_KEY=
 # Install dependencies
 make install
 
-# Run the application
+# Run the streamlit app
 make run
+
+# Run the terminal app
+make run-py
 
 # Lint the codebase
 make lint

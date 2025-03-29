@@ -7,7 +7,7 @@ lint:
 	ruff check . --fix
 	ruff format . 
 
-run-dev:
+run-py:
 	python exp.py
 
 run:
