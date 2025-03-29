@@ -1,12 +1,12 @@
 import streamlit as st
 import weave
 from exp import PromptPair, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT
-from utils import AnalysisData, generate_responses
+from utils import AnalysisData, generate_responses, Choice
+
+client = weave.init("prompter-app")
 
 # Set page to wide mode
 st.set_page_config(layout="wide")
-
-client = weave.init("prompter-st")
 
 
 def initialize_session_state():
@@ -52,25 +52,26 @@ def display_responses(original, optimized):
     if hash(original) % 2 == 0:
         col1.text_area("Response A:", value=original, height=200, disabled=True)
         col2.text_area("Response B:", value=optimized, height=200, disabled=True)
-        col1.slider("Rate response A:", 1, 10, key="slider_a")
-        col2.slider("Rate response B:", 1, 10, key="slider_b")
+        col1.slider("Rate response A:", 1, 10, key="slider_original")
+        col2.slider("Rate response B:", 1, 10, key="slider_optimized")
     else:
         col1.text_area("Response A:", value=optimized, height=200, disabled=True)
         col2.text_area("Response B:", value=original, height=200, disabled=True)
-        col1.slider("Rate response A:", 1, 10, key="slider_a")
-        col2.slider("Rate response B:", 1, 10, key="slider_b")
+        col1.slider("Rate response A:", 1, 10, key="slider_optimized")
+        col2.slider("Rate response B:", 1, 10, key="slider_original")
 
 
 @weave.op
-def get_user_evaluation():
-    """Get user's evaluation of both responses"""
-    # Get values from the sliders that were created in display_responses
-    response_a_score = st.session_state.slider_a
-    response_b_score = st.session_state.slider_b
-    preferred = "Response A" if response_a_score > response_b_score else "Response B"
+def get_user_eval():
+    score_optimized = st.session_state.slider_optimized
+    score_original = st.session_state.slider_original
+    preferred: Choice = (
+        Choice.OPTIMIZED if score_optimized > score_original else Choice.ORIGINAL
+    )
+
     return {
-        "response_a_score": response_a_score,
-        "response_b_score": response_b_score,
+        "score_optimized": score_optimized,
+        "score_original": score_original,
         "preferred": preferred,
     }
 
@@ -81,8 +82,10 @@ def show_analysis(original_prompt_pair: PromptPair):
     # Get analysis data from session state
     analysis_data: AnalysisData = st.session_state.analysis_data
 
+    user_eval = get_user_eval()
+
     # Display winner
-    if analysis_data.winner == "input_1":
+    if user_eval["preferred"] == Choice.ORIGINAL:
         st.success("**You chose:** your version!")
     else:
         st.error("**You chose:** the optimized version :(")
@@ -177,7 +180,6 @@ def main():
 
     elif st.session_state.current_stage == "evaluate":
         display_responses(st.session_state.original, st.session_state.optimized)
-        get_user_evaluation()
 
         if st.button("Show analysis"):
             st.session_state.current_stage = "analysis"

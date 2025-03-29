@@ -1,3 +1,4 @@
+from enum import Enum
 from pydantic import BaseModel
 import weave
 from typing import Optional
@@ -96,3 +97,8 @@ def generate_responses(prompt_pair: PromptPair) -> dict:
         "optimized_output": comparison.optimized_output,
         "analysis_data": analysis_data,
     }
+
+
+class Choice(str, Enum):
+    ORIGINAL = "Original"
+    OPTIMIZED = "Optimized"
