@@ -4,8 +4,7 @@ from openai import OpenAI
 
 import weave
 
-DEFAULT_USER_PROMPT = """
-I'm going to the store to buy some eggs.
+DEFAULT_USER_PROMPT = """I'm going to the store to buy some eggs.
 too bad inflation is so high.
 2 eggs isn't enough
 I need 100 eggs
@@ -44,7 +43,7 @@ def analyze_prompt(prompt: str, is_system_prompt: bool = False) -> PromptAnalysi
         "- **Risk of Hallucination**: Assessment of where interpolation may cause errors or unexpected outputs.\n"
         "- **Hallucination Targets**: Specific text targets that are at risk of hallucination.\n"
         "- **Program improvement ideas**: Ideas for improving the prompt.\n"
-        "\nOutput must be a JSON object with the following fields:\n"
+        "\nOutput must be a JSON object with the following fields, ALL FIELDS MUST BE PRESENT:\n"
         "- program_key: A concise identifier for the type of operation.\n"
         "- program_inputs: List of identified inputs in the prompt.\n"
         "- hallucination_risk: Assessment of hallucination risk with specific text targets.\n"

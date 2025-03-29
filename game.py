@@ -18,6 +18,10 @@ def initialize_session_state():
         st.session_state.scores = []
     if "analysis_data" not in st.session_state:
         st.session_state.analysis_data = None
+    if "previous_system_prompt" not in st.session_state:
+        st.session_state.previous_system_prompt = DEFAULT_SYSTEM_PROMPT
+    if "previous_user_prompt" not in st.session_state:
+        st.session_state.previous_user_prompt = DEFAULT_USER_PROMPT
 
 
 def display_header():
@@ -34,12 +38,21 @@ def get_user_prompts():
     """Get the system and user prompts from the user"""
     system_prompt = st.text_area(
         "System prompt (optional):",
-        value=DEFAULT_SYSTEM_PROMPT,
+        value=st.session_state.previous_system_prompt,
         key="system_prompt_input",
+        height=180,
     )
     user_prompt = st.text_area(
-        "User prompt:", value=DEFAULT_USER_PROMPT, key="user_prompt_input"
+        "User prompt:",
+        value=st.session_state.previous_user_prompt,
+        key="user_prompt_input",
+        height=180,
     )
+
+    # Store the prompts for next time
+    st.session_state.previous_system_prompt = system_prompt
+    st.session_state.previous_user_prompt = user_prompt
+
     return PromptPair(
         system_prompt=system_prompt if system_prompt else None, user_prompt=user_prompt
     )
@@ -63,9 +76,7 @@ def display_responses(original, optimized):
 
 
 @weave.op
-def get_user_eval():
-    score_optimized = st.session_state.slider_optimized
-    score_original = st.session_state.slider_original
+def get_user_eval(score_optimized: int, score_original: int):
     preferred: Choice = (
         Choice.OPTIMIZED if score_optimized > score_original else Choice.ORIGINAL
     )
@@ -74,19 +85,28 @@ def get_user_eval():
         "score_optimized": score_optimized,
         "score_original": score_original,
         "preferred": preferred,
+        "user_chose_optimized": score_optimized > score_original,
     }
 
 
 def show_analysis(original_prompt_pair: PromptPair):
     """Show the analysis of the prompt optimization..."""
 
+    if st.session_state.current_stage != "analysis":
+        return
+
     # Get analysis data from session state
     analysis_data: AnalysisData = st.session_state.analysis_data
 
-    user_eval = get_user_eval()
+    score_optimized = st.session_state.get("slider_optimized", -1)
+    score_original = st.session_state.get("slider_original", -1)
+    if score_optimized == -1 or score_original == -1:
+        st.session_state.current_stage = "input"
+
+    user_eval = get_user_eval(score_optimized, score_original)
 
     # Display winner
-    if user_eval["preferred"] == Choice.ORIGINAL:
+    if not user_eval["user_chose_optimized"]:
         st.success("**You chose:** your version!")
     else:
         st.error("**You chose:** the optimized version :(")
@@ -98,22 +118,34 @@ def show_analysis(original_prompt_pair: PromptPair):
 
     # Display prompts
     st.subheader("Prompts")
-    if analysis_data.original_system_prompt:
-        col1, col2 = st.columns(2)
-        col1.text_area(
-            "Original system prompt",
-            value=analysis_data.original_system_prompt,
-            height=100,
-            disabled=True,
-        )
-        col2.text_area(
-            "Optimized system prompt",
-            value=analysis_data.optimized_system_prompt,
-            height=100,
-            disabled=True,
-        )
+    col1, col2 = st.columns(2)
+    col1.text_area(
+        "Original system prompt",
+        value=analysis_data.original_system_prompt,
+        height=150,
+        disabled=True,
+    )
+    col2.text_area(
+        "Optimized system prompt",
+        value=analysis_data.optimized_system_prompt,
+        height=150,
+        disabled=True,
+    )
     st.text_area(
-        "User prompt", value=analysis_data.user_prompt, height=100, disabled=True
+        "User prompt", value=analysis_data.user_prompt, height=200, disabled=True
+    )
+    col1, col2 = st.columns(2)
+    col1.text_area(
+        "Original output",
+        value=analysis_data.original_output,
+        height=200,
+        disabled=True,
+    )
+    col2.text_area(
+        "Optimized output",
+        value=analysis_data.optimized_output,
+        height=200,
+        disabled=True,
     )
 
     # Display program analysis in a table
@@ -173,9 +205,9 @@ def main():
         if st.button("Generate responses"):
             with st.spinner("Working our magic..."):
                 res = generate_responses(prompt_pair)
-                st.session_state.original = res["original_output"]
-                st.session_state.optimized = res["optimized_output"]
-                st.session_state.analysis_data = res["analysis_data"]
+                st.session_state.original = res.original_output
+                st.session_state.optimized = res.optimized_output
+                st.session_state.analysis_data = res
                 st.session_state.current_stage = "evaluate"
             st.rerun()
 

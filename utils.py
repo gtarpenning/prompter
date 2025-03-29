@@ -14,8 +14,6 @@ from exp import (
     PromptPair,
 )
 
-weave.init("prompter-st")
-
 
 class AnalysisData(BaseModel):
     original_system_prompt: Optional[str]
@@ -30,6 +28,8 @@ class AnalysisData(BaseModel):
     winner: str
     original_score: int
     optimized_score: int
+    original_output: str
+    optimized_output: str
 
     def to_dict(self) -> dict:
         """Convert the AnalysisData model to a dictionary."""
@@ -37,7 +37,7 @@ class AnalysisData(BaseModel):
 
 
 @weave.op
-def generate_responses(prompt_pair: PromptPair) -> dict:
+def generate_responses(prompt_pair: PromptPair) -> AnalysisData:
     """Generate original and optimized responses for a given prompt pair.
 
     Args:
@@ -49,27 +49,16 @@ def generate_responses(prompt_pair: PromptPair) -> dict:
     # Only analyze and optimize the system prompt if it exists
     optimized_system_prompt = None
     if prompt_pair.system_prompt:
-        # Analyze the system prompt
-        analysis: PromptAnalysis = analyze_prompt(
-            prompt_pair.system_prompt, is_system_prompt=True
-        )
-
-        # Optimize the system prompt
-        optimized: OptimizedPrompt = optimize_prompt(
-            analysis, prompt_pair.system_prompt
-        )
-        optimized_system_prompt = optimized.optimized_prompt
+        prompt = prompt_pair.system_prompt
     else:
-        # Create a dummy analysis for when there's no system prompt
-        analysis = PromptAnalysis(
-            program_key="user_prompt_only",
-            program_inputs=[prompt_pair.user_prompt],
-            hallucination_risk="Low - no system prompt to optimize",
-            hallucination_targets=[],
-            program_improvement_ideas=[
-                "Consider adding a system prompt to guide the model's behavior"
-            ],
-        )
+        prompt = prompt_pair.user_prompt
+
+    # Analyze the system prompt
+    analysis: PromptAnalysis = analyze_prompt(prompt, is_system_prompt=True)
+
+    # Optimize the system prompt
+    optimized: OptimizedPrompt = optimize_prompt(analysis, prompt)
+    optimized_system_prompt = optimized.optimized_prompt
 
     # Get responses for both prompts
     comparison: PromptComparison = compare_outputs(prompt_pair, optimized_system_prompt)
@@ -90,13 +79,11 @@ def generate_responses(prompt_pair: PromptPair) -> dict:
         original_system_prompt=prompt_pair.system_prompt,
         optimized_system_prompt=optimized_system_prompt,
         user_prompt=prompt_pair.user_prompt,
+        original_output=comparison.original_output,
+        optimized_output=comparison.optimized_output,
     )
 
-    return {
-        "original_output": comparison.original_output,
-        "optimized_output": comparison.optimized_output,
-        "analysis_data": analysis_data,
-    }
+    return analysis_data
 
 
 class Choice(str, Enum):
