@@ -2,10 +2,8 @@
 
 A Streamlit-based web application for analyzing and optimizing prompts using LLMs. The app allows users to input system and user prompts, generates responses using both original and optimized prompts, and provides detailed analysis of the optimization process.
 
-## Storyboard
-
-[View the project storyboard](./storyboard.txt)
-[View the weave project](https://wandb.ai/sparc/prompter-st/weave/traces)
+- [View the project storyboard](./storyboard.txt)
+- [View the weave project](https://wandb.ai/sparc/prompter-st/weave/traces)
 
 ## Setup and Usage
 
